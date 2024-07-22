@@ -53,6 +53,8 @@ Os trechos do código serão descritos por partes
 
 > O sampleFactor corresponde ao fator de redução de frequência de amostragem da temperatura e iluminância. Para obter um fator de 10x, ou seja, ter uma uma amostragem de corrente e tensão 10 vezes maior, sampleFactor será igual a (10*2)-1 = 19
 
+> Os valores de offset e ganho devem ser estimados de acordo com os valores reais do circuito de condicionamento
+
 ## Void setup
 
     //Initialization
@@ -158,3 +160,183 @@ Os trechos do código serão descritos por partes
 	    TCCR0B = 0x03; //CS0[2:0] = 011 -> clkIO/64 = 250kHz *****************************************************
     
     }
+
+> Neste trecho do código, é feita toda a configuração dos registradores
+
+> A frequência de amostragem geral do ADC é dada pelo seguinte cálculo: Frequência oscilador principal Arduino / Divisor de clock definido pelo resgitrador TCCR0B / (Contador definido pelo resgitrador OCR0A +1)
+>
+> Neste caso, o resultado é: fADC = 16MHz/64/52 = 4807,7Hz
+
+>Caso não houvesse o fator de ampliação para tensão e corrente, a frequência de amostragem de cada canal seria fADC/4. Porém, com a estratégia de amplificação, ela se torna: fADC / 4 * [1+ 1- (fator de amostragem/100)]
+>
+>Neste caso, o resultado é: fTensão = fCorrente = 4807,7 / 4 * 1,9 = 2283.65Hz
+
+>Para a iluminância e temperatura, o valor será 4807,7/4/10 = 120,19Hz
+
+>**Para o ajuste da freqûencia, o único registrador que deve ser alterado é o OCR0A**
+
+## Rotina de interrupção do ADC
+
+    //ADC interrupt service routine
+    
+    ISR(ADC_vect)
+    
+    {
+    
+	    int sample, CH; //Resultado da conversão e Canal selecionado
+	    
+	    static  int counter = 0; //Controls the number of samples
+	    
+	    static  float tensao, corrente, power; //Varíaveis para cálculo da energia em tempo real, não são utilizadas na montagem do vetor de dados
+	    
+	    static  int samplingCounter = 0; //Contador de amostras
+	    
+	    static  int lastLux, lastTemp; //Memória de últimas leituras de temperatura e luminância
+	    
+	      
+	    
+	    //Read the latest sample
+	    
+	    sample = ADCL; //Read the lower byte
+	    
+	    sample += ADCH<<8; //Read the upper byte
+	    
+	      
+	    
+	    ///Real time routine
+	    
+	    CH = ADMUX & 0x0F; //Salva na varíavel CH qual é o canal vigente do ADC
+	    
+	      
+	    
+	    if(CH == 0){ //Salva valor de tensão caso o canal seja 0
+	    
+		    tensao = getVoltage(sample);
+	    
+	    }
+	    
+	    if(CH == 1){ //Salva valor de corrente caso o canal seja 1, calcula o valor de potência intantânea e incrementa o contador de energia
+	    
+		    corrente = getCurrent(sample);
+		    
+		    power = sq(tensao * corrente);
+		    
+		    power = sqrt(power);
+		    
+		      
+		    
+		    energy += power / fAmostragem / 3600;
+	    
+	    }
+	    
+	    //Verify if it is time to transmit
+	    
+	    if  (sendStatus == false){ //Controla o salvamento das leituras no vetor de dados
+	    
+		    dataVector[CH][counter] = sample; //Store the data
+		    
+		    //Controla a correta atualização do contador do vetor, e do salvamento dos dados
+		    
+		    if(samplingCounter < sampleFactor){ //Atualização do contador do vetor caso esteja medindo apenas o canal 0 e 1
+		    
+			    if  (CH+1 >= N-2){
+			    
+			    counter++; //update the number of samples
+			    
+			    }
+		    
+			    dataVector[2][counter] = lastLux; //Repete os valores da última medição para luminância
+			    
+			    dataVector[3][counter] = lastTemp; //Repete os valores da última medição para temperatura
+		    
+		    }
+		    
+		    if(samplingCounter == sampleFactor+1){ //Salvamento da última medição de luminância
+		    
+			    lastLux = sample;
+	    
+		    }
+		    
+		    if(samplingCounter == sampleFactor+2){ //Salvamento da última medição de temperatura, e atualização do contador do vetor caso esteja medindo o canal 3
+		    
+			    lastTemp = sample;
+			    
+			    counter++;
+		    
+		    }
+		    
+		      
+		    
+		    // Reset do contador do vetor após preenchimento completo, e ativação da flag de envio
+		    
+		    if  (counter == tam){
+		    
+			    counter = 0;
+			    
+			    sendStatus = true;
+		    
+		    }
+	    
+	    }
+	    
+	      
+	    
+	    //Organiza quais os próximos canais a serem lidos de acordo com o número de medições realizadas
+	    
+	    if(samplingCounter < sampleFactor){ //Caso o número de amostras seja menor que sampleFactor, alterna-se a leitura entre os canais 0 e 1
+	    
+		    if  (++CH < N-2)
+		    
+		    ADMUX += 1; //If not, go to the next channel
+		    
+		    else{
+		    
+		    ADMUX &= 0xF0; //If so, turn to channel 0
+		    
+		    }
+	    
+	    }
+	    
+	    if(samplingCounter == sampleFactor){ //Caso o número de amostras seja igual a sampleFactor, troca para canal 2
+	    
+		    ADMUX &= 0xF0; //If so, turn to channel 2
+		    
+		    ADMUX += 2;
+	    
+	    }
+	    
+	    if(samplingCounter == sampleFactor+1){ //Caso o número de amostras seja igual a sampleFactor+1, troca para canal 3
+	    
+		    ADMUX &= 0xF0; //If so, turn to channel 3
+		    
+		    ADMUX += 3;
+	    
+	    }
+	    
+	    if(samplingCounter >= sampleFactor+2){ //Caso o número de amostras seja igual a sampleFactor+2, troca para canal 0 novamente, e zera o contador de amostras
+		    
+		    ADMUX &= 0xF0; //If so, turn to channel 0 and
+		    
+		    samplingCounter = 0;
+	    
+	    }
+	    
+	      
+	    
+	    samplingCounter++; //Atualiza o contador de medições
+    
+    }
+
+## Rotina de interrupção do timer
+
+
+
+## Funções de processamento
+
+
+
+## Void loop
+
+
+
+## Resultados
