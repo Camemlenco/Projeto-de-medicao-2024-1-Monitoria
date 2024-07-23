@@ -327,16 +327,230 @@ Os trechos do código serão descritos por partes
     
     }
 
+>É feita a medição constante dos sinais nesta rotina, independente da situação do flag sendStatus. A medição da tensão e corrente é alteranada, e após um número de X de aquisições, é feita uma medição de iluminância e temperatura. 
+
+>O cálculo de energia em tempo real é feito ao se coletar uma amostra de tensão e uma de corrente
+
+>Apenas quando o flag sendStatus é falso, o vetor de dados é preenchido. Entretanto, as aquisições continuam sendo feitas independente disto. Os valores de iluminância e temperatura são repetidos no vetor de dados com o último valor medido, até que uma nova aquisição dessas grandezas seja feita.
+
 ## Rotina de interrupção do timer
 
-
+    //TIMER interrupt service routine - USADO PARA CRIAR UM SINAL DE TESTE NO PINO LED_BUILTIN
+    
+    ISR(TIMER0_COMPA_vect)  {
+    
+	    //just clears the flag, as needed, but can be used for secondary ADC actions
+	    
+	    //In this example just toggles the digital output 7 at timer_clk/2 Hz
+	    
+	    
+	    static bool toogle = true;
+	    
+	    static int counter = 0;
+	    
+	      
+	    
+	    if (counter == 60){
+	    
+		    counter = 0;
+	    
+		    if (toogle) {
+		    
+			    digitalWrite(LED_BUILTIN, HIGH);
+			    
+			    digitalWrite(7, HIGH);
+			    
+			    toogle = false;
+		    
+		    } else {
+		    
+			    digitalWrite(LED_BUILTIN, LOW);
+			    
+			    digitalWrite(7, LOW);
+			    
+			    toogle = true;
+		    
+		    }
+	    
+	    }
+	    
+	    else
+	    
+		    counter++;
+    }
+    
+>Rotina necessária para limpar o flag do timer, porém pode ser utilizada também para gerar um sinal de teste no pino 7 
 
 ## Funções de processamento
 
+    float  getVoltage(int  data){ // Converte valor do ADC usando modelo de medição para tensão
+    
+	    float voltage = (float)data;
+	    
+	    voltage = (voltage * (5.0/1023) - vOffset) * vGain;
+	    
+	    return voltage;
+    
+    }
+    
+    float  getCurrent(int  data2){ // Converte valor do ADC usando modelo de medição para corrente
+    
+	    float current = (float)data2;
+	    
+	    current = ((current * (5.0/1023.0)) - IOffset) * IGain;
+	    
+	    return current;
+    
+    }
+    
+    float  getLux(int  lux){ // Converte valor do ADC usando modelo de medição para luminância
+    
+	    return  float(lux);
+    
+    }
+    
+    float  getTemp(int  data){ // Converte valor do ADC usando modelo de medição para temperatura
+    
+	    float temperature = (float)data;
+	    
+	    temperature = (temperature * (5.0/1023.0)) * 100.0;
+	    
+	    return temperature;
+    
+    }
+    
+      
+    
+    void  processData(){ //Calcula a tensão RMS, corrente RMS, potência ativa, e energia
+    
+	    activePower = 0.0;
+	    
+	    voltageRMS = 0.0;
+	    
+	    currentRMS = 0.0;
+	    
+	    for(int k=0;k<tam;k++){
+	    
+		    activePower += sq(getVoltage(dataVector[0][k]) * getCurrent(dataVector[1][k]));
+		    
+		    voltageRMS += sq(getVoltage(dataVector[0][k]));
+		    
+		    currentRMS += sq(getCurrent(dataVector[1][k]));
+	    
+	    }
+	    
+	    voltageRMS = sqrt(voltageRMS/tam);
+	    
+	    currentRMS = sqrt(currentRMS/tam);
+	    
+	    activePower = sqrt(activePower/tam);
+    
+    
+    }
+>As funções getVoltage, getCurrent, getLux e getTemp recebem um valor de leitura do ADC entre 0 a 1023, e retornam com as valores nas respectivas unidades: volts, amperes, lux e graus celsius. Os valores de ganho e offset podem ser ajustados no início do código
 
+>A função processData calcula a tensão e corrente RMS, e a potência ativa, utilizando o vetor de dados. Os valores são gravados nas variáveis globais respectivas.
 
 ## Void loop
 
+    //Loop to send data to the main computer
+    
+    void  loop()
+    
+    {
+    
+	    int i,j;
+	    
+	    char cmd;
+	    
+	    //Verify if it is time to transmit data
+	    
+	    if  (sendStatus == true){
+	    
+		    //Wait for the command from the host
+		    
+		    cmd = 'x';
+		    
+		    while  (cmd != 'a'){ //Comando de letra "a" deve ser enviado pelo terminal
+		    
+			    if  (Serial.available() > 0)
+			    
+			    cmd = Serial.read();
+		    
+		    }
+		    
+		    processData(); //Chama a função que calcula os valores RMS, potência e energia
+		    
+		    //Transmite dados de forma de onda, convertendo o valor para as respectivas unidades
+		    
+		    for(i=0; i<tam; i++){
+		    
+			    for(j=0; j<(N); j++){
+			    
+				    if(j==0){
+				    
+					    Serial.print(getVoltage(dataVector[j][i]));
+				    
+				    }
+				    
+				    if(j==1){
+				    
+					    Serial.print(getCurrent(dataVector[j][i]));
+				    
+				    }
+				    
+				    if(j==2){
+				    
+					    Serial.print(getLux(dataVector[j][i]));
+				    
+				    }
+				    
+				    if(j==3){
+				    
+					    Serial.print(getTemp(dataVector[j][i]));
+				    
+				    }
+				    
+				    Serial.print("\t");
+				    
+				    }
+			    
+			    Serial.println();
+		    
+		    }
+		    
+		    //Transmite dados calculados
+		    
+		    Serial.print("Voltage RMS=");
+		    
+		    Serial.println(voltageRMS);
+		    
+		    Serial.print("Current RMS=");
+		    
+		    Serial.println(currentRMS);
+		    
+		    Serial.print("Active Power=");
+		    
+		    Serial.println(activePower);
+		    
+		    Serial.print("Energy=");
+		    
+		    Serial.println(energy);
+		    
+		    //Restart acquisition
+		    
+		    noInterrupts();
+		    
+		    sendStatus = false;
+		    
+		    interrupts();
+		    
+		}
+    
+    }
 
+>No loop, espera-se o comando da letra "a" no terminal para que os dados sejam processados e enviados.
+>Após um envio, o flag sendStatus fica falso e um novo vetor de dados é adquirido.
 
 ## Resultados
+
