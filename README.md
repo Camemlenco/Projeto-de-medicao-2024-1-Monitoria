@@ -1,6 +1,6 @@
 # Projeto de laboratório da disciplina Sistemas de Medição - UFMG
 
-Este projeto tem o objetivo de fazer a medição de 4 sinais no funcionamento de uma lâmpada LED: tensão, corrente, iluminância, e temperatura. O circuito de condicionamento de sinais possui as saídas com tensão de 0 a 5V, conectadas respectivamente nos pino A0 à A3 do Arduino UNO.
+Este projeto tem o objetivo de fazer a medição de 4 sinais relacionados ao funcionamento de uma lâmpada LED: tensão, corrente, iluminância, e temperatura. O circuito de condicionamento de sinais possui as saídas com tensão de 0 a 5V, conectadas respectivamente nos pino A0 à A3 do Arduino UNO.
 
 O Arduino processa os dados para exibir na saída do terminal serial as seguintes informações: 
 
