@@ -554,3 +554,39 @@ Os trechos do código serão descritos por partes
 
 ## Resultados
 
+Outras variações deste mesmo código foram testadas a fim de avaliar a performance de cada uma das opções. As variações foram: código sem cálculo de energia em tempo real, código com energia em tempo real com taxa de amostragem igual para todos os canais, e código com energia em tempo real com melhoramento de taxa de amostragem(que é a versão apresentada neste documento), e código usando o modo free-running mode do ADC.
+
+**Código com energia em tempo real com melhoramento de taxa de amostragem:**
+Neste cenário, o menor valor possível para o registrador OCR0A foi 46, resultando numa frequência de amostragem final para tensão e corrente de **2526,6Hz**, e de 133Hz para iluminância e temperatura. Este valor ainda é abaixo do valor teórico ideal, mas já proporciona uma qualidade de detecção muito satisfatória.
+O resultado das formas de onda pelo plotter do arduino foram assim, para a tensão, corrente, iluminância e temperatura respectivamente:
+![enter image description here](https://github.com/Camemlenco/Projeto-de-medicao-2024-1-Monitoria/blob/main/Captura%20de%20tela%202024-07-24%20164121.png?raw=true)
+![enter image description here](https://github.com/Camemlenco/Projeto-de-medicao-2024-1-Monitoria/blob/main/Captura%20de%20tela%202024-07-24%20133533.png?raw=true)
+![enter image description here](https://github.com/Camemlenco/Projeto-de-medicao-2024-1-Monitoria/blob/main/Captura%20de%20tela%202024-07-24%20164054.png?raw=true)
+![enter image description here](https://github.com/Camemlenco/Projeto-de-medicao-2024-1-Monitoria/blob/main/Captura%20de%20tela%202024-07-24%20164109.png?raw=true)
+
+Os valores calculados obtidos numa certa amostra foram:
+>Voltage RMS=128.00
+	Current RMS=0.07
+	Active Power=8.70
+	Energy=0.01
+	>
+O gráfico de corrente gerado pela coleta de pontos, por meio de outro software, resulta numa figura mais precisa, que é exibida abaixo:
+
+
+**Código com energia em tempo real com taxa de amostragem igual para todos os canais:**
+Neste cenário, o menor valor possível para o registrador OCR0A foi 45, resultando numa frequência de amostragem final para todos os canais de **1358,7Hz**. Nota-se que com o melhoramento, é possível quase dobrar a frequência de amostragem.
+
+O gráfico de corrente gerado pela coleta de pontos, nesse caso, é exibido abaixo. O resultado para esta frequência de amostragem já não é muito satisfatório e apresenta distorções significativas.
+
+**Código sem energia em tempo real:**
+Neste cenário, o menor valor possível para o registrador OCR0A foi 10, resultando numa frequência de amostragem final para todos os canais de **5681,8Hz**.  Porém, nesta frequência o resultado é pior pois o ADC não consegue operar em sua máxima resolução. À fim de se obter a máxima frequência com melhor resolução, o valor de OCR0A deve ser 16, resultando numa frequência de amostragem final para todos os canais de **3676,5Hz**. Nota-se um aumento expressivo da frequência de amostragem, que com a técnica de melhoramento **poderia ainda alcançar quase o dobro** deste valor. 
+
+Conclui-se que o cálculo de energia em tempo real gasta muito tempo de processamento, e é o grande causador do redução de amostragem. Esta limitação infelizmente não pode ser contornada, pois, para atender os requisitos, o cálculo deve ser feito necessariamente entre cada ciclo do ADC. A limitação só pode ser contornada trocando de microcontrolador, ou abdicando do cáculo em tempo real.
+
+O gráfico de corrente gerado pela coleta de pontos, nesse caso, é exibido abaixo. O resultado é substancialmente superior, sendo que o único prejuízo é mesmo na perda de dados no cálculo de energia.
+
+**Código free-running mode:**
+
+Neste código, o arduino não é acionado pelo Timer, e sim pelo auto-trigger do ADC. A frequência de amostragem utilizada foi de **Hz**. O cálculo de energia em tempo real não foi implementado nesse modo, e nem o melhoramento de amostragem.
+
+O gráfico de corrente gerado pela coleta de pontos, nesse caso, é exibido abaixo. 
