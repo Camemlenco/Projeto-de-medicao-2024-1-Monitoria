@@ -21,7 +21,7 @@ Os trechos do código serão descritos por partes
 
     #define  tam  180 //Size of data buffers
     
-    #define  fAmostragem  2283.65 //Frequência de amostragem que deve ser calculada manualmente para a configuração realizada
+    #define  fAmostragem  2526.6 //Frequência de amostragem que deve ser calculada manualmente para a configuração realizada
     
     #define  sampleFactor  19 //Fator de redução da frequencia de amostragem da luminância e temperatura(deve ser calculado x2-1)
     
@@ -135,7 +135,7 @@ Os trechos do código serão descritos por partes
 	    
 	    //////////////////AJUSTE DE FREQÛENCIA DE AMOSTRAGEM AQUI/////////////////////////
 	    
-	    OCR0A = 51; //Set the compare register A -> Divide o clock por OCR0A+1, para obter frequência de amostragem -> f=250K/(OCR0A+1)
+	    OCR0A = 46; //Set the compare register A -> Divide o clock por OCR0A+1, para obter frequência de amostragem -> f=250K/(OCR0A+1)
 	    
 	    /////////////////////////////////////////////////////////////////////////////
 	    
@@ -556,12 +556,20 @@ Os trechos do código serão descritos por partes
 
 Outras variações deste mesmo código foram testadas a fim de avaliar a performance de cada uma das opções. As variações foram: código sem cálculo de energia em tempo real, código com energia em tempo real com taxa de amostragem igual para todos os canais, e código com energia em tempo real com melhoramento de taxa de amostragem(que é a versão apresentada neste documento), e código usando o modo free-running mode do ADC.
 
-**Código com energia em tempo real com melhoramento de taxa de amostragem:**
+## Código com energia em tempo real com melhoramento de taxa de amostragem:
+
+Este é o resultado oficial e final do projeto, este código atende da melhor maneira as especificações desejadas. 
 Neste cenário, o menor valor possível para o registrador OCR0A foi 46, resultando numa frequência de amostragem final para tensão e corrente de **2526,6Hz**, e de 133Hz para iluminância e temperatura. Este valor ainda é abaixo do valor teórico ideal, mas já proporciona uma qualidade de detecção muito satisfatória.
 O resultado das formas de onda pelo plotter do arduino foram assim, para a tensão, corrente, iluminância e temperatura respectivamente:
+
+*Tensão:*
 ![enter image description here](https://github.com/Camemlenco/Projeto-de-medicao-2024-1-Monitoria/blob/main/Captura%20de%20tela%202024-07-24%20164121.png?raw=true)
+
+*Corrente:*
 ![enter image description here](https://github.com/Camemlenco/Projeto-de-medicao-2024-1-Monitoria/blob/main/Captura%20de%20tela%202024-07-24%20133533.png?raw=true)
+*Iluminância:*
 ![enter image description here](https://github.com/Camemlenco/Projeto-de-medicao-2024-1-Monitoria/blob/main/Captura%20de%20tela%202024-07-24%20164054.png?raw=true)
+*Temperatura:*
 ![enter image description here](https://github.com/Camemlenco/Projeto-de-medicao-2024-1-Monitoria/blob/main/Captura%20de%20tela%202024-07-24%20164109.png?raw=true)
 
 Os valores calculados obtidos numa certa amostra foram:
@@ -570,23 +578,45 @@ Os valores calculados obtidos numa certa amostra foram:
 	Active Power=8.70
 	Energy=0.01
 	>
-O gráfico de corrente gerado pela coleta de pontos, por meio de outro software, resulta numa figura mais precisa, que é exibida abaixo:
+O gráfico de **corrente** gerado pela coleta de pontos, por meio de outro software, resulta numa figura mais precisa, que é exibida abaixo:
+![enter image description here](https://github.com/Camemlenco/Projeto-de-medicao-2024-1-Monitoria/blob/main/Realtime%20energy%20Enhanced.png?raw=true)
 
 
-**Código com energia em tempo real com taxa de amostragem igual para todos os canais:**
+
+## Código com energia em tempo real com taxa de amostragem igual para todos os canais:
+
 Neste cenário, o menor valor possível para o registrador OCR0A foi 45, resultando numa frequência de amostragem final para todos os canais de **1358,7Hz**. Nota-se que com o melhoramento, é possível quase dobrar a frequência de amostragem.
 
 O gráfico de corrente gerado pela coleta de pontos, nesse caso, é exibido abaixo. O resultado para esta frequência de amostragem já não é muito satisfatório e apresenta distorções significativas.
+![enter image description here](https://github.com/Camemlenco/Projeto-de-medicao-2024-1-Monitoria/blob/main/Realtime%20energy.png?raw=true)
 
-**Código sem energia em tempo real:**
-Neste cenário, o menor valor possível para o registrador OCR0A foi 10, resultando numa frequência de amostragem final para todos os canais de **5681,8Hz**.  Porém, nesta frequência o resultado é pior pois o ADC não consegue operar em sua máxima resolução. À fim de se obter a máxima frequência com melhor resolução, o valor de OCR0A deve ser 16, resultando numa frequência de amostragem final para todos os canais de **3676,5Hz**. Nota-se um aumento expressivo da frequência de amostragem, que com a técnica de melhoramento **poderia ainda alcançar quase o dobro** deste valor. 
+
+
+## Código sem energia em tempo real:
+
+Neste cenário, o menor valor possível para o registrador OCR0A foi 10, resultando numa frequência de amostragem final para todos os canais de 5681,8Hz.  Porém, nesta frequência o resultado é pior pois o ADC não consegue operar em sua máxima resolução. À fim de se obter a máxima frequência com melhor resolução, o valor de OCR0A deve ser 16, resultando numa frequência de amostragem final para todos os canais de **3676,5Hz**. Nota-se um aumento expressivo da frequência de amostragem, que com a técnica de melhoramento **poderia ainda alcançar quase o dobro** deste valor. 
 
 Conclui-se que o cálculo de energia em tempo real gasta muito tempo de processamento, e é o grande causador do redução de amostragem. Esta limitação infelizmente não pode ser contornada, pois, para atender os requisitos, o cálculo deve ser feito necessariamente entre cada ciclo do ADC. A limitação só pode ser contornada trocando de microcontrolador, ou abdicando do cáculo em tempo real.
 
-O gráfico de corrente gerado pela coleta de pontos, nesse caso, é exibido abaixo. O resultado é substancialmente superior, sendo que o único prejuízo é mesmo na perda de dados no cálculo de energia.
+O gráfico de **corrente** gerado pela coleta de pontos, nesse caso, é exibido abaixo. O resultado é substancialmente superior, sendo que o único prejuízo é mesmo na perda de dados no cálculo de energia.
+![enter image description here](https://github.com/Camemlenco/Projeto-de-medicao-2024-1-Monitoria/blob/main/No%20Realtime%20energy.png?raw=true)
 
-**Código free-running mode:**
+> Utilizando a técnica de melhoramento de amostragem, obtém-se o melhor resultado possível de aquisição das formas de onda no arduino UNO. Este é exibido na imagem a seguir, com amostragem de **6984Hz**:
 
-Neste código, o arduino não é acionado pelo Timer, e sim pelo auto-trigger do ADC. A frequência de amostragem utilizada foi de **Hz**. O cálculo de energia em tempo real não foi implementado nesse modo, e nem o melhoramento de amostragem.
 
-O gráfico de corrente gerado pela coleta de pontos, nesse caso, é exibido abaixo. 
+![enter image description here](https://github.com/Camemlenco/Projeto-de-medicao-2024-1-Monitoria/blob/main/No%20Realtime%20energy%20Enhanced.png?raw=true)
+
+
+## Código free-running mode:
+
+Neste código, o arduino não é acionado pelo Timer, e sim pelo auto-trigger do ADC. A frequência de amostragem utilizada foi de **4807,7Hz**. O cálculo de energia em tempo real não foi implementado nesse modo, e nem o melhoramento de amostragem. Este modo de configuração apresentou-se problemático, pois, em vários testes as medições dos canais 2 e 3 foram consideradas duvidosas. Ocorreram alguns bugs no código que não foram possíveis de serem solucionados, apesar de ainda assim, ter sido possível extrair algumas medições. O ajuste de amostragem não pode ser feito de forma precisa, uma vez que há poucas opções de ajuste do prescale do ADC.
+
+O gráfico de **corrente** gerado pela coleta de pontos, nesse caso, é exibido abaixo:
+![enter image description here](https://github.com/Camemlenco/Projeto-de-medicao-2024-1-Monitoria/blob/main/FreeRunning.png?raw=true)
+
+
+## Conclusão
+Com o teste de várias configurações diferentes, conclui-se que para a melhor fidelidade de forma de onda, a opção sem cálculo de energia em tempo real, e com melhoramento de taxa de amostragem, é a melhor opção. Entretanto, o cálculo correto da energia só pode ser garantido se for feito em tempo real, não adiantando fazer um processamento em interface digital externa. Sendo um requisito indispensável, a opção mais fiel não pode ser utilizada.
+Ao se implementar o cálculo da energia, houve uma penalidade computacional muito grande na qualidade do sinal captado, proporcionando um resultado também insatisfatório. A técnica de melhoramento aplicada neste caso trouxe um enorme ganho de qualidade, que foi suficiente para se considerar o resultado final como altamente satisfatório, em comparação com o sinal do código anterior.
+A técnica de melhoramento foi imprescindível para alcançar os requisitos do projeto.
+O modo free-running ocasionou problemas, além de não permitir ajuste fino das configurações, logo, seu uso foi considerado inviável.
