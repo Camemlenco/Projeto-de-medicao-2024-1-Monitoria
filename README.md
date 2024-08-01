@@ -574,9 +574,12 @@ O resultado das formas de onda pelo plotter do arduino foram assim, para a tens�
 
 Os valores calculados obtidos numa certa amostra foram:
 >Voltage RMS=128.00
+
 >Current RMS=0.07
+
 >Active Power=8.70
->Energy=0.01
+
+>Energy=0.01(incrementa com o tempo)
 
 O gráfico de **corrente** gerado pela coleta de pontos, por meio de outro software, resulta numa figura mais precisa, que é exibida abaixo:
 ![enter image description here](https://github.com/Camemlenco/Projeto-de-medicao-2024-1-Monitoria/blob/main/Realtime%20energy%20Enhanced.png?raw=true)
