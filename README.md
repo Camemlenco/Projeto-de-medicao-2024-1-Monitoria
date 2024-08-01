@@ -574,9 +574,9 @@ O resultado das formas de onda pelo plotter do arduino foram assim, para a tens�
 
 Os valores calculados obtidos numa certa amostra foram:
 >Voltage RMS=128.00
-	Current RMS=0.07
-	Active Power=8.70
-	Energy=0.01
+>Current RMS=0.07
+>Active Power=8.70
+>Energy=0.01
 
 O gráfico de **corrente** gerado pela coleta de pontos, por meio de outro software, resulta numa figura mais precisa, que é exibida abaixo:
 ![enter image description here](https://github.com/Camemlenco/Projeto-de-medicao-2024-1-Monitoria/blob/main/Realtime%20energy%20Enhanced.png?raw=true)
@@ -617,6 +617,9 @@ O gráfico de **corrente** gerado pela coleta de pontos, nesse caso, é exibido 
 
 ## Conclusão
 Com o teste de várias configurações diferentes, conclui-se que para a melhor fidelidade de forma de onda, a opção sem cálculo de energia em tempo real, e com melhoramento de taxa de amostragem, é a melhor opção. Entretanto, o cálculo correto da energia só pode ser garantido se for feito em tempo real, não adiantando fazer um processamento em interface digital externa. Sendo um requisito indispensável, a opção mais fiel não pode ser utilizada.
+
 Ao se implementar o cálculo da energia, houve uma penalidade computacional muito grande na qualidade do sinal captado, proporcionando um resultado também insatisfatório. A técnica de melhoramento aplicada neste caso trouxe um enorme ganho de qualidade, que foi suficiente para se considerar o resultado final como altamente satisfatório, em comparação com o sinal do código anterior.
+
 A técnica de melhoramento foi imprescindível para alcançar os requisitos do projeto.
+
 O modo free-running ocasionou problemas, além de não permitir ajuste fino das configurações, logo, seu uso foi considerado inviável.
